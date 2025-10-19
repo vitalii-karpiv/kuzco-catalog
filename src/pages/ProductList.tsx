@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { mockProducts } from '../data/mockProducts';
-import { Product, FilterState } from '../types/product';
+import { FilterState } from '../types/product';
 
 const ProductList = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
