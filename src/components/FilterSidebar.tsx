@@ -30,7 +30,7 @@ const FilterSidebar = ({
 
   const handleResetFilters = () => {
     const resetFilters: FilterState = {
-      priceRange: [0, 5000],
+      priceRange: [0, 10000],
       brands: [],
       ram: [],
       storage: [],
@@ -122,7 +122,7 @@ const FilterSidebar = ({
                 <input
                   type="range"
                   min="0"
-                  max="5000"
+                  max="10000"
                   value={localFilters.priceRange[0]}
                   onChange={(e) => handlePriceRangeChange(0, parseInt(e.target.value))}
                   className="w-full"
@@ -130,7 +130,7 @@ const FilterSidebar = ({
                 <input
                   type="range"
                   min="0"
-                  max="5000"
+                  max="10000"
                   value={localFilters.priceRange[1]}
                   onChange={(e) => handlePriceRangeChange(1, parseInt(e.target.value))}
                   className="w-full"

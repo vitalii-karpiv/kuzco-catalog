@@ -1,19 +1,83 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockProducts } from '../data/mockProducts';
+import { useEffect, useState } from 'react';
 import ProductGallery from '../components/ProductGallery';
+import { getLaptop, listLaptopImages } from '../api/laptops';
+import { mapLaptopToProduct, mapLaptopImages } from '../utils/mappers';
+import type { Product } from '../types/product';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const product = mockProducts.find(p => p.id === id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!product) {
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) {
+        setError('Invalid product ID');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Fetch laptop details
+        const laptop = await getLaptop(id);
+        
+        // Fetch laptop images
+        let images: string[] = [];
+        try {
+          const laptopImages = await listLaptopImages(id);
+          images = mapLaptopImages(laptopImages);
+        } catch (imgError) {
+          console.warn('Failed to load images, using default photo:', imgError);
+          // Fallback to photoUri if images endpoint fails
+          if (laptop.photoUri) {
+            images = [laptop.photoUri];
+          }
+        }
+
+        const mappedProduct = mapLaptopToProduct(laptop, images.length > 0 ? images : undefined);
+        setProduct(mappedProduct);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load laptop';
+        setError(errorMessage);
+        console.error('Error fetching laptop:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="glass-card p-8 text-center max-w-md mx-auto">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
-          <p className="text-gray-600 mb-6">The laptop you're looking for doesn't exist.</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading laptop details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="glass-card p-8 text-center max-w-md mx-auto">
+          <svg className="w-16 h-16 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            {error ? 'Error Loading Laptop' : 'Product Not Found'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {error || "The laptop you're looking for doesn't exist."}
+          </p>
           <button
             onClick={() => navigate('/')}
             className="glass-button px-6 py-3 text-sm font-medium text-gray-700 hover:text-gray-900"
@@ -119,21 +183,6 @@ const ProductDetail = () => {
                   <span className="font-medium text-gray-700">Operating System</span>
                   <span className="text-gray-600">{product.specs.os}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Tags */}
-            <div className="glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Categories & Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-blue-500/20 text-blue-700 rounded-full text-sm font-medium">
-                  {product.category}
-                </span>
-                {product.tags.map(tag => (
-                  <span key={tag} className="px-3 py-1 bg-gray-500/20 text-gray-700 rounded-full text-sm font-medium">
-                    {tag}
-                  </span>
-                ))}
               </div>
             </div>
 

@@ -1,67 +1,126 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
-import { mockProducts } from '../data/mockProducts';
 import { FilterState } from '../types/product';
+import { listLaptops } from '../api/laptops';
+import { mapLaptopToProduct } from '../utils/mappers';
+import type { Product } from '../types/product';
+import type { LaptopListPublicDtoIn } from '../types/catalog';
 
 const ProductList = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    priceRange: [0, 5000],
+    priceRange: [0, 10000],
     brands: [],
     ram: [],
     storage: [],
     processors: [],
     searchQuery: ''
   });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const pageSize = 20;
 
-  // Extract unique values for filters
-  const brands = useMemo(() => [...new Set(mockProducts.map(p => p.brand))], []);
-  const processors = useMemo(() => [...new Set(mockProducts.map(p => p.specs.processor))], []);
-  const ramOptions = useMemo(() => [...new Set(mockProducts.map(p => p.specs.ram))], []);
-  const storageOptions = useMemo(() => [...new Set(mockProducts.map(p => p.specs.storage))], []);
+  // Extract unique values for filters from loaded products
+  const brands = useMemo(() => [...new Set(products.map(p => p.brand))], [products]);
+  const processors = useMemo(() => [...new Set(products.map(p => p.specs.processor))], [products]);
+  const ramOptions = useMemo(() => [...new Set(products.map(p => p.specs.ram))], [products]);
+  const storageOptions = useMemo(() => [...new Set(products.map(p => p.specs.storage))], [products]);
 
-  // Filter products based on current filters
-  const filteredProducts = useMemo(() => {
-    return mockProducts.filter(product => {
-      // Search query filter
-      if (filters.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
-        if (!product.name.toLowerCase().includes(query) && 
-            !product.brand.toLowerCase().includes(query) &&
-            !product.description.toLowerCase().includes(query)) {
-          return false;
+  // Convert FilterState to API filters
+  const apiFilters = useMemo((): LaptopListPublicDtoIn => {
+    const apiFilter: LaptopListPublicDtoIn = {
+      pageIndex: currentPage,
+      pageSize: pageSize,
+      sorters: { sellPrice: 1 },
+    };
+
+    if (filters.searchQuery) {
+      apiFilter.name = filters.searchQuery;
+    }
+
+    if (filters.brands.length > 0) {
+      // Use first brand for now (API supports single brand filter)
+      apiFilter.brand = filters.brands[0];
+    }
+
+    if (filters.ram.length > 0) {
+      // Extract numeric value from "16GB" format
+      const ramValue = parseInt(filters.ram[0].replace('GB', ''));
+      if (!isNaN(ramValue)) {
+        apiFilter.ram = ramValue;
+      }
+    }
+
+    if (filters.storage.length > 0) {
+      // Extract numeric value from "512GB SSD" format
+      const storageValue = parseInt(filters.storage[0].replace('GB SSD', '').replace('GB', ''));
+      if (!isNaN(storageValue)) {
+        apiFilter.ssd = storageValue;
+      }
+    }
+
+    // Note: Price range filtering would need to be done client-side or via API if supported
+    // Processor filtering would need to be done via name search or client-side
+
+    return apiFilter;
+  }, [filters, currentPage]);
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await listLaptops(apiFilters);
+        const mappedProducts = response.itemList.map(laptop => mapLaptopToProduct(laptop));
+        
+        // Apply client-side filters that aren't supported by API
+        let filtered = mappedProducts;
+        
+        // Price range filter (client-side)
+        filtered = filtered.filter(product => 
+          product.price >= filters.priceRange[0] && product.price <= filters.priceRange[1]
+        );
+
+        // Multiple brand filter (client-side)
+        if (filters.brands.length > 1) {
+          filtered = filtered.filter(product => filters.brands.includes(product.brand));
         }
-      }
 
-      // Price range filter
-      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
-        return false;
-      }
+        // Multiple RAM filter (client-side)
+        if (filters.ram.length > 1) {
+          filtered = filtered.filter(product => filters.ram.includes(product.specs.ram));
+        }
 
-      // Brand filter
-      if (filters.brands.length > 0 && !filters.brands.includes(product.brand)) {
-        return false;
-      }
+        // Multiple storage filter (client-side)
+        if (filters.storage.length > 1) {
+          filtered = filtered.filter(product => filters.storage.includes(product.specs.storage));
+        }
 
-      // RAM filter
-      if (filters.ram.length > 0 && !filters.ram.includes(product.specs.ram)) {
-        return false;
-      }
+        // Processor filter (client-side)
+        if (filters.processors.length > 0) {
+          filtered = filtered.filter(product => 
+            filters.processors.includes(product.specs.processor)
+          );
+        }
 
-      // Storage filter
-      if (filters.storage.length > 0 && !filters.storage.includes(product.specs.storage)) {
-        return false;
+        setProducts(filtered);
+        setTotalCount(response.pageInfo.totalCount);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load laptops';
+        setError(errorMessage);
+        console.error('Error fetching laptops:', err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Processor filter
-      if (filters.processors.length > 0 && !filters.processors.includes(product.specs.processor)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [filters]);
+    fetchProducts();
+  }, [apiFilters, filters]);
 
   const activeFiltersCount = filters.brands.length + filters.ram.length + filters.storage.length + filters.processors.length;
 
@@ -113,7 +172,8 @@ const ProductList = () => {
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-800">
-                {filteredProducts.length} laptop{filteredProducts.length !== 1 ? 's' : ''} found
+                {loading ? 'Loading...' : `${products.length} laptop${products.length !== 1 ? 's' : ''} found`}
+                {totalCount > 0 && ` (${totalCount} total)`}
               </h2>
               
               {/* Desktop Filter Toggle */}
@@ -134,14 +194,46 @@ const ProductList = () => {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="glass-card p-8 max-w-md mx-auto">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading laptops...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="text-center py-12">
+              <div className="glass-card p-8 max-w-md mx-auto">
+                <svg className="w-16 h-16 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Error Loading Laptops</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="glass-button px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Products Grid */}
-          {filteredProducts.length > 0 ? (
+          {!loading && !error && products.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-              {filteredProducts.map(product => (
+              {products.map(product => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
-          ) : (
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && products.length === 0 && (
             <div className="text-center py-12">
               <div className="glass-card p-8 max-w-md mx-auto">
                 <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,14 +242,17 @@ const ProductList = () => {
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">No laptops found</h3>
                 <p className="text-gray-600 mb-4">Try adjusting your filters to see more results.</p>
                 <button
-                  onClick={() => setFilters({
-                    priceRange: [0, 5000],
-                    brands: [],
-                    ram: [],
-                    storage: [],
-                    processors: [],
-                    searchQuery: ''
-                  })}
+                  onClick={() => {
+                    setFilters({
+                      priceRange: [0, 10000],
+                      brands: [],
+                      ram: [],
+                      storage: [],
+                      processors: [],
+                      searchQuery: ''
+                    });
+                    setCurrentPage(0);
+                  }}
                   className="glass-button px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
                 >
                   Clear All Filters
