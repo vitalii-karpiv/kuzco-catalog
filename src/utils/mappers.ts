@@ -25,16 +25,38 @@ export const mapLaptopToProduct = (
   if (panelType) displayParts.push(panelType.toUpperCase());
   const display = displayParts.length > 0 ? displayParts.join(' ') : 'N/A';
 
+  // Determine images array: use provided images, or fallback to photoUri, or empty array
+  let finalImages: string[] = [];
+  if (images && images.length > 0) {
+    finalImages = images;
+  } else if (laptop.photoUri) {
+    // Check if photoUri is a valid non-empty string
+    const photoUriStr = String(laptop.photoUri).trim();
+    if (photoUriStr !== '' && photoUriStr !== 'null' && photoUriStr !== 'undefined') {
+      // Validate that it looks like a URL (starts with http:// or https://)
+      if (photoUriStr.startsWith('http://') || photoUriStr.startsWith('https://')) {
+        finalImages = [photoUriStr];
+      } else {
+        // If it's a relative path, try to construct full URL (though API should provide full URLs)
+        console.warn('photoUri is not a full URL for laptop:', laptop.name, 'photoUri:', photoUriStr);
+        // Still try to use it, might work if it's a valid relative path
+        finalImages = [photoUriStr];
+      }
+    } else {
+      // Log when photoUri exists but is invalid
+      console.warn('Invalid photoUri for laptop:', laptop.name, 'photoUri:', laptop.photoUri);
+    }
+  } else {
+    // Log when photoUri is missing
+    console.warn('Missing photoUri for laptop:', laptop.name, laptop._id);
+  }
+
   return {
     id: laptop._id,
     name: laptop.name || 'Unnamed Laptop',
     brand: laptop.brand || 'Unknown',
     price: laptop.sellPrice || 0,
-    images: images && images.length > 0 
-      ? images 
-      : laptop.photoUri 
-        ? [laptop.photoUri] 
-        : [],
+    images: finalImages,
     description: `${laptop.brand || 'Unknown'} ${laptop.model || ''} ${laptop.submodel || ''} - ${processor} with ${videocard}`.trim(),
     specs: {
       processor: processor,
@@ -45,6 +67,9 @@ export const mapLaptopToProduct = (
       battery: battery > 0 ? `${battery}Wh` : 'N/A',
       weight: 'N/A',
       os: 'N/A',
+      screenSize: screenSize > 0 ? `${screenSize}"` : 'N/A',
+      resolution: resolution && resolution !== 'N/A' ? resolution : 'N/A',
+      panelType: panelType ? panelType.toUpperCase() : 'N/A',
     },
     category: chars.discrete ? 'Gaming' : 'Professional',
     tags: [

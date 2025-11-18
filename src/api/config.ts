@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: 'https://api.kuzcocrm.com/catalog',
+  // baseURL: 'https://api.kuzcocrm.com/catalog',
+  baseURL: 'http://localhost:3000/catalog',
   headers: {
     'Content-Type': 'application/json',
   },

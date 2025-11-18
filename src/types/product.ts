@@ -14,6 +14,9 @@ export interface Product {
     battery: string;
     weight: string;
     os: string;
+    screenSize: string;
+    resolution: string;
+    panelType: string;
   };
   category: string;
   tags: string[];
@@ -22,9 +25,10 @@ export interface Product {
 
 export interface FilterState {
   priceRange: [number, number];
-  brands: string[];
   ram: string[];
   storage: string[];
-  processors: string[];
+  screenSize: string[];
+  resolution: string[];
+  panelType: string[];
   searchQuery: string;
 }
