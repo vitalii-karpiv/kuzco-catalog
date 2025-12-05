@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import ProductGallery from '../components/ProductGallery';
-import { getLaptop, listLaptopImages } from '../api';
-import { mapLaptopToProduct, mapLaptopImages } from '../utils/mappers';
+import { getLaptop } from '../api';
+import { mapLaptopToProduct } from '../utils/mappers';
 import type { Product } from '../types/product';
 
 const ProductDetail = () => {
@@ -26,26 +26,13 @@ const ProductDetail = () => {
       setError(null);
 
       try {
-        // Fetch laptop details
-        const laptop = await getLaptop(id);
+        // Fetch laptop group details
+        const laptopGroup = await getLaptop(id);
         
         if (isCancelled) return;
         
-        // Fetch laptop images
-        let images: string[] = [];
-        try {
-          const laptopImages = await listLaptopImages(id);
-          images = mapLaptopImages(laptopImages);
-        } catch (imgError) {
-          console.warn('Failed to load images, using default photo:', imgError);
-          // Fallback to photoUri if images endpoint fails
-          if (laptop.photoUri) {
-            images = [laptop.photoUri];
-          }
-        }
-
         if (!isCancelled) {
-          const mappedProduct = mapLaptopToProduct(laptop, images.length > 0 ? images : undefined);
+          const mappedProduct = mapLaptopToProduct(laptopGroup);
           setProduct(mappedProduct);
         }
       } catch (err: unknown) {

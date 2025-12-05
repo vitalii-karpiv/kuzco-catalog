@@ -5,7 +5,7 @@ import { FilterState } from '../types/product';
 import { listLaptops } from '../api/laptops';
 import { mapLaptopToProduct } from '../utils/mappers';
 import type { Product } from '../types/product';
-import type { LaptopListPublicDtoIn } from '../types/catalog';
+import type { LaptopGroupListPublicDtoIn } from '../types/catalog';
 
 const ProductList = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -23,52 +23,65 @@ const ProductList = () => {
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
-  const pageSize = 20;
 
 
   // Convert FilterState to API filters
-  const apiFilters = useMemo((): LaptopListPublicDtoIn => {
-    const apiFilter: LaptopListPublicDtoIn = {
-      pageIndex: currentPage,
-      pageSize: pageSize,
-      sorters: { sellPrice: 1 },
-    };
+  const apiFilters = useMemo((): LaptopGroupListPublicDtoIn => {
+    const apiFilter: LaptopGroupListPublicDtoIn = {};
 
     if (filters.searchQuery) {
-      apiFilter.name = filters.searchQuery;
+      apiFilter.title = filters.searchQuery;
+    }
+
+    // Map price range to API priceFrom / priceTo
+    if (filters.priceRange && filters.priceRange.length === 2) {
+      apiFilter.priceFrom = filters.priceRange[0];
+      apiFilter.priceTo = filters.priceRange[1];
     }
 
     if (filters.ram.length > 0) {
-      // Extract numeric value from "16GB" format
-      const ramValue = parseInt(filters.ram[0].replace('GB', ''));
-      if (!isNaN(ramValue)) {
-        apiFilter.ram = ramValue;
+      // Extract numeric values from "16GB" format
+      const ramValues = filters.ram
+        .map((value) => parseInt(value.replace('GB', ''), 10))
+        .filter((value) => !isNaN(value));
+
+      if (ramValues.length > 0) {
+        apiFilter.ramList = ramValues;
       }
     }
 
     if (filters.storage.length > 0) {
-      // Extract numeric value from "512GB SSD" format
-      const storageValue = parseInt(filters.storage[0].replace('GB SSD', '').replace('GB', ''));
-      if (!isNaN(storageValue)) {
-        apiFilter.ssd = storageValue;
+      // Extract numeric values from "512GB SSD" format
+      const storageValues = filters.storage
+        .map((value) =>
+          parseInt(value.replace('GB SSD', '').replace('GB', ''), 10)
+        )
+        .filter((value) => !isNaN(value));
+
+      if (storageValues.length > 0) {
+        apiFilter.ssdList = storageValues;
       }
     }
 
     if (filters.screenSize.length > 0) {
-      // Extract numeric value from "15.6"" format
-      const screenSizeValue = parseFloat(filters.screenSize[0].replace('"', ''));
-      if (!isNaN(screenSizeValue)) {
-        apiFilter.screenSize = screenSizeValue;
+      // Extract numeric values from "15.6\""" format
+      const screenSizes = filters.screenSize
+        .map((value) => parseFloat(value.replace('"', '')))
+        .filter((value) => !isNaN(value));
+
+      if (screenSizes.length > 0) {
+        apiFilter.screenSizeList = screenSizes;
       }
     }
 
     if (filters.panelType.length > 0) {
-      // Use first panel type (API supports single panelType filter)
-      // Convert from uppercase back to lowercase for API
-      apiFilter.panelType = filters.panelType[0].toLowerCase() as 'tn' | 'ips' | 'oled';
+      // API accepts list of panel types, already in uppercase form (e.g. "IPS")
+      apiFilter.panelType = filters.panelType;
     }
 
-    // Note: Price range and resolution filtering would need to be done client-side or via API if supported
+    if (filters.resolution.length > 0) {
+      apiFilter.resolutionList = filters.resolution;
+    }
 
     return apiFilter;
   }, [filters, currentPage]);

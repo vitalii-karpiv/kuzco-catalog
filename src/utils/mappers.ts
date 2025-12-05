@@ -1,22 +1,30 @@
-import type { LaptopPublicProjection, LaptopImage } from '../types/catalog';
+import type {
+  LaptopGroupListItem,
+  LaptopGroupGetDtoOut,
+  LaptopImage,
+} from '../types/catalog';
 import type { Product } from '../types/product';
 
 /**
- * Maps API laptop data to Product type used by components
+ * Maps laptop group data (list or detail) to Product type used by components
  */
 export const mapLaptopToProduct = (
-  laptop: LaptopPublicProjection,
+  laptop: LaptopGroupListItem | LaptopGroupGetDtoOut,
   images?: string[]
 ): Product => {
-  const chars = laptop.characteristics || {};
-  const panelType = chars.panelType || '';
-  const screenSize = chars.screenSize || 0;
-  const resolution = chars.resolution || 'N/A';
-  const processor = chars.processor || 'N/A';
-  const videocard = chars.videocard || 'N/A';
-  const ram = chars.ram || 0;
-  const ssd = chars.ssd || 0;
-  const battery = chars.battery || 0;
+  const screenSize = laptop.screenSize || 0;
+  const resolution = laptop.resolution || 'N/A';
+  const panelType = laptop.panelType || '';
+  const processor = laptop.processor || 'N/A';
+  const videocard = laptop.videocard || 'N/A';
+
+  // Use first variant as primary one for price/specs
+  const primaryVariant =
+    laptop.variants && laptop.variants.length > 0 ? laptop.variants[0] : undefined;
+
+  const ram = primaryVariant?.ram ?? 0;
+  const ssd = primaryVariant?.ssd ?? 0;
+  const battery = (primaryVariant as any)?.battery ?? 0;
 
   // Build display string safely
   const displayParts = [];
@@ -29,54 +37,61 @@ export const mapLaptopToProduct = (
   let finalImages: string[] = [];
   if (images && images.length > 0) {
     finalImages = images;
-  } else if (laptop.photoUri) {
-    // Check if photoUri is a valid non-empty string
-    const photoUriStr = String(laptop.photoUri).trim();
-    if (photoUriStr !== '' && photoUriStr !== 'null' && photoUriStr !== 'undefined') {
-      // Validate that it looks like a URL (starts with http:// or https://)
-      if (photoUriStr.startsWith('http://') || photoUriStr.startsWith('https://')) {
-        finalImages = [photoUriStr];
-      } else {
-        // If it's a relative path, try to construct full URL (though API should provide full URLs)
-        console.warn('photoUri is not a full URL for laptop:', laptop.name, 'photoUri:', photoUriStr);
-        // Still try to use it, might work if it's a valid relative path
-        finalImages = [photoUriStr];
-      }
+  } else if ((laptop as any).imageUrl) {
+    const imageUrlStr = String((laptop as any).imageUrl).trim();
+    if (
+      imageUrlStr !== '' &&
+      imageUrlStr !== 'null' &&
+      imageUrlStr !== 'undefined'
+    ) {
+      finalImages = [imageUrlStr];
     } else {
-      // Log when photoUri exists but is invalid
-      console.warn('Invalid photoUri for laptop:', laptop.name, 'photoUri:', laptop.photoUri);
+      console.warn(
+        'Invalid imageUrl for laptop group:',
+        (laptop as any).groupName || (laptop as any).title,
+        'imageUrl:',
+        (laptop as any).imageUrl
+      );
     }
   } else {
-    // Log when photoUri is missing
-    console.warn('Missing photoUri for laptop:', laptop.name, laptop._id);
+    console.warn(
+      'Missing imageUrl for laptop group:',
+      (laptop as any).groupName || (laptop as any).title,
+      laptop._id
+    );
   }
 
   return {
     id: laptop._id,
-    name: laptop.name || 'Unnamed Laptop',
-    brand: laptop.brand || 'Unknown',
-    price: laptop.sellPrice || 0,
+    name:
+      (laptop as LaptopGroupListItem).title ||
+      laptop.groupName ||
+      'Unnamed Laptop Group',
+    brand: 'Kuzco',
+    price: primaryVariant?.price || 0,
     images: finalImages,
-    description: `${laptop.brand || 'Unknown'} ${laptop.model || ''} ${laptop.submodel || ''} - ${processor} with ${videocard}`.trim(),
+    description: `${
+      (laptop as any).groupDescription || (laptop as any).note || 'Laptop group'
+    } - ${processor} with ${videocard}`.trim(),
     specs: {
       processor: processor,
       ram: `${ram}GB`,
       storage: `${ssd}GB SSD`,
       display: display,
       graphics: videocard,
-      battery: battery > 0 ? `${battery}Wh` : 'N/A',
+      battery: battery ? String(battery) : 'N/A',
       weight: 'N/A',
       os: 'N/A',
       screenSize: screenSize > 0 ? `${screenSize}"` : 'N/A',
       resolution: resolution && resolution !== 'N/A' ? resolution : 'N/A',
       panelType: panelType ? panelType.toUpperCase() : 'N/A',
     },
-    category: chars.discrete ? 'Gaming' : 'Professional',
+    category: laptop.discrete ? 'Gaming' : 'Professional',
     tags: [
-      laptop.brand,
-      chars.discrete ? 'Discrete Graphics' : 'Integrated Graphics',
-      chars.touch ? 'Touchscreen' : '',
-      chars.keyLight ? 'Backlit Keyboard' : '',
+      laptop.groupName,
+      laptop.discrete ? 'Discrete Graphics' : 'Integrated Graphics',
+      (primaryVariant as any)?.touch ? 'Touchscreen' : '',
+      (primaryVariant as any)?.keyLight ? 'Backlit Keyboard' : '',
       panelType ? panelType.toUpperCase() : '',
     ].filter(Boolean),
     inStock: true, // All laptops from API are in SELLING state, so they're in stock

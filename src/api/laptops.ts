@@ -1,51 +1,35 @@
 import apiClient from './config';
 import type {
-  LaptopListPublicDtoIn,
-  LaptopListPublicDtoOut,
-  LaptopGetPublicDtoOut,
-  LaptopImagesListDtoIn,
-  LaptopImage,
+  LaptopGroupListPublicDtoIn,
+  LaptopGroupListPublicDtoOut,
+  LaptopGroupGetDtoOut,
   ApiError,
 } from '../types/catalog';
 
 /**
- * List laptops with optional filtering and pagination
- * @param filters - Optional filters and pagination parameters
- * @returns Promise with paginated laptop list
+ * List laptop groups for public catalog
+ * @param filters - Optional filters for laptop groups
+ * @returns Promise with laptop group list
  */
 export const listLaptops = async (
-  filters?: LaptopListPublicDtoIn
-): Promise<LaptopListPublicDtoOut> => {
-  const response = await apiClient.post<LaptopListPublicDtoOut>(
-    '/laptops',
+  filters?: LaptopGroupListPublicDtoIn
+): Promise<LaptopGroupListPublicDtoOut> => {
+  const response = await apiClient.post<LaptopGroupListPublicDtoOut>(
+    '/laptopGroup/list/public',
     filters || {}
   );
   return response.data;
 };
 
 /**
- * Get a specific laptop by ID
- * @param id - MongoDB ObjectId of the laptop
- * @returns Promise with laptop details
- * @throws ApiError if laptop not found or not available for sale
+ * Get a specific laptop group by ID
+ * @param id - MongoDB ObjectId of the laptop group
+ * @returns Promise with laptop group details
+ * @throws ApiError if group not found
  */
-export const getLaptop = async (id: string): Promise<LaptopGetPublicDtoOut> => {
-  const response = await apiClient.get<LaptopGetPublicDtoOut>(`/laptops/${id}`);
-  return response.data;
-};
-
-/**
- * List all images for a specific laptop
- * @param laptopId - MongoDB ObjectId of the laptop
- * @returns Promise with array of laptop images (with signed URLs)
- */
-export const listLaptopImages = async (
-  laptopId: string
-): Promise<LaptopImage[]> => {
-  const requestBody: LaptopImagesListDtoIn = { laptopId };
-  const response = await apiClient.post<LaptopImage[]>(
-    '/laptops/images',
-    requestBody
+export const getLaptop = async (id: string): Promise<LaptopGroupGetDtoOut> => {
+  const response = await apiClient.get<LaptopGroupGetDtoOut>(
+    `/laptopGroup/${id}`
   );
   return response.data;
 };
