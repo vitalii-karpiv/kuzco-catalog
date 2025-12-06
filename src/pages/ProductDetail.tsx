@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react';
 import ProductGallery from '../components/ProductGallery';
 import { getLaptop } from '../api';
 import { mapLaptopToProduct } from '../utils/mappers';
-import type { Product } from '../types/product';
+import type { Product, ProductVariant } from '../types/product';
+import VariantSelector from '../components/detail/VariantSelector';
+import TechnicalSpecs from '../components/detail/TechnicalSpecs';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,6 +21,7 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       if (!id) {
         setError('Невірний ідентифікатор товару');
+        setSelectedVariant(null);
         setLoading(false);
         return;
       }
@@ -34,11 +38,25 @@ const ProductDetail = () => {
         if (!isCancelled) {
           const mappedProduct = mapLaptopToProduct(laptopGroup);
           setProduct(mappedProduct);
+
+          // Set default selected variant (cheapest or first)
+          const variants = mappedProduct.variants || [];
+          if (variants.length > 0) {
+            const sortedByPrice = [...variants].sort((a, b) => {
+              const priceA = a.price ?? Number.MAX_SAFE_INTEGER;
+              const priceB = b.price ?? Number.MAX_SAFE_INTEGER;
+              return priceA - priceB;
+            });
+            setSelectedVariant(sortedByPrice[0]);
+          } else {
+            setSelectedVariant(null);
+          }
         }
       } catch (err: unknown) {
         if (!isCancelled) {
           const errorMessage = err instanceof Error ? err.message : 'Не вдалося завантажити ноутбук';
           setError(errorMessage);
+          setSelectedVariant(null);
           console.error('Error fetching laptop:', err);
         }
       } finally {
@@ -127,21 +145,9 @@ const ProductDetail = () => {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
-                  <p className="text-lg text-gray-600">{product.brand}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-gray-800">{product.price.toLocaleString()} грн</div>
-                  <div className="flex items-center mt-2">
-                    {product.inStock ? (
-                      <span className="bg-green-500/90 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
-                        В наявності
-                      </span>
-                    ) : (
-                      <span className="bg-red-500/90 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
-                        Немає в наявності
-                      </span>
-                    )}
-                  </div>
                 </div>
               </div>
               
@@ -149,51 +155,22 @@ const ProductDetail = () => {
             </div>
 
             {/* Technical Specifications */}
-            <div className="glass-card p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Технічні характеристики</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Процесор</span>
-                  <span className="text-gray-600">{product.specs.processor}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Пам'ять (RAM)</span>
-                  <span className="text-gray-600">{product.specs.ram}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Накопичувач</span>
-                  <span className="text-gray-600">{product.specs.storage}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Дисплей</span>
-                  <span className="text-gray-600">{product.specs.display}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Відеокарта</span>
-                  <span className="text-gray-600">{product.specs.graphics}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Батарея</span>
-                  <span className="text-gray-600">{product.specs.battery}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-white/20">
-                  <span className="font-medium text-gray-700">Вага</span>
-                  <span className="text-gray-600">{product.specs.weight}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="font-medium text-gray-700">Операційна система</span>
-                  <span className="text-gray-600">{product.specs.os}</span>
-                </div>
-              </div>
-            </div>
+            <TechnicalSpecs product={product} />
+
+            {/* Variants Table */}
+            {product.variants && product.variants.length > 0 && (
+              <VariantSelector
+                variants={product.variants}
+                selectedVariantId={selectedVariant?.identifier}
+                onSelect={(variant) => setSelectedVariant(variant)}
+              />
+            )}
 
             {/* Action Buttons */}
             <div className="flex space-x-4">
               <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl">
-                Додати до кошика - {product.price.toLocaleString()} грн
-              </button>
-              <button className="glass-button px-6 py-4 font-semibold text-gray-700 hover:text-gray-900">
-                Додати до списку бажань
+                Замовити -{' '}
+                {(selectedVariant?.price ?? product.price).toLocaleString()} грн
               </button>
             </div>
           </div>

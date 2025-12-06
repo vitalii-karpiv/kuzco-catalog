@@ -2,10 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { FilterState } from '../types/product';
-import { listLaptops } from '../api/laptops';
+import { listLaptops } from '../api/laptop-group';
 import { mapLaptopToProduct } from '../utils/mappers';
 import type { Product } from '../types/product';
-import type { LaptopGroupListPublicDtoIn } from '../types/catalog';
+import type { LaptopGroupListPublicDtoIn } from '../types/laptop-group';
 
 const ProductList = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -75,7 +75,8 @@ const ProductList = () => {
     }
 
     if (filters.panelType.length > 0) {
-      // API accepts list of panel types, already in uppercase form (e.g. "IPS")
+    // API accepts list of panel types, already in uppercase form (e.g. "IPS")
+      filters.panelType = filters.panelType.map(panelType => panelType.toLowerCase());
       apiFilter.panelType = filters.panelType;
     }
 
@@ -97,39 +98,7 @@ const ProductList = () => {
         const response = await listLaptops(apiFilters);
         
         if (isCancelled) return;
-        // Apply client-side filters that aren't supported by API
-        let filtered = response.itemList.map(laptop => mapLaptopToProduct(laptop));
-
-        
-        // Price range filter (client-side)
-        filtered = filtered.filter(product => 
-          product.price >= filters.priceRange[0] && product.price <= filters.priceRange[1]
-        );
-
-        // Multiple RAM filter (client-side)
-        if (filters.ram.length > 1) {
-          filtered = filtered.filter(product => filters.ram.includes(product.specs.ram));
-        }
-
-        // Multiple storage filter (client-side)
-        if (filters.storage.length > 1) {
-          filtered = filtered.filter(product => filters.storage.includes(product.specs.storage));
-        }
-
-        // Screen size filter (client-side)
-        if (filters.screenSize.length > 0) {
-          filtered = filtered.filter(product => filters.screenSize.includes(product.specs.screenSize));
-        }
-
-        // Resolution filter (client-side)
-        if (filters.resolution.length > 0) {
-          filtered = filtered.filter(product => filters.resolution.includes(product.specs.resolution));
-        }
-
-        // Panel type filter (client-side)
-        if (filters.panelType.length > 0) {
-          filtered = filtered.filter(product => filters.panelType.includes(product.specs.panelType));
-        }
+        const filtered = response.itemList.map(laptop => mapLaptopToProduct(laptop));
 
         if (!isCancelled) {
           setProducts(filtered);

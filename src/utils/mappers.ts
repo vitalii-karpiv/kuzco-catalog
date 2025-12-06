@@ -1,107 +1,137 @@
 import type {
   LaptopGroupListItem,
   LaptopGroupGetDtoOut,
-  LaptopImage,
-} from '../types/catalog';
-import type { Product } from '../types/product';
+  LaptopGroupListVariant,
+  LaptopGroupDetailVariant,
+} from '../types/laptop-group';
+import type { Product, ProductVariant } from '../types/product';
+import type { BatteryCondition } from '../constants/batteryCondition';
+import type { LaptopCondition } from '../constants/laptopCondition';
+
+const BATTERY_VALUES: BatteryCondition[] = [
+  'excellent',
+  'good',
+  'fair',
+  'poor',
+];
+
+const CONDITION_VALUES: LaptopCondition[] = ['A+', 'A', 'B', 'C'];
+
+const normalizeBattery = (
+  battery?: string
+): BatteryCondition | undefined => {
+  if (!battery) return undefined;
+  const value = battery.toLowerCase() as BatteryCondition;
+  return BATTERY_VALUES.includes(value) ? value : undefined;
+};
+
+const normalizeCondition = (
+  condition?: string
+): LaptopCondition | undefined => {
+  if (!condition) return undefined;
+  const value = condition.toUpperCase() as LaptopCondition;
+  return CONDITION_VALUES.includes(value) ? value : undefined;
+};
+
+const isListVariant = (
+  variant: LaptopGroupListVariant | LaptopGroupDetailVariant
+): variant is LaptopGroupListVariant => {
+  return (variant as LaptopGroupListVariant).identifier !== undefined;
+};
+
+const mapVariantToProductVariant = (
+  variant: LaptopGroupListVariant | LaptopGroupDetailVariant,
+  parentItemList?: string[]
+): ProductVariant => {
+  const identifier = isListVariant(variant)
+    ? variant.identifier
+    : variant.laptopId;
+
+  const itemList = isListVariant(variant)
+    ? variant.itemList
+    : parentItemList || [];
+
+  const battery = isListVariant(variant)
+    ? normalizeBattery(variant.battery)
+    : undefined;
+
+  const condition = isListVariant(variant)
+    ? normalizeCondition(variant.condition)
+    : undefined;
+
+  return {
+    identifier,
+    ram: variant.ram,
+    ssd: variant.ssd,
+    touch: variant.touch,
+    battery,
+    condition,
+    price: variant.price,
+    itemList,
+  };
+};
 
 /**
  * Maps laptop group data (list or detail) to Product type used by components
  */
 export const mapLaptopToProduct = (
-  laptop: LaptopGroupListItem | LaptopGroupGetDtoOut,
-  images?: string[]
+  laptop: LaptopGroupListItem | LaptopGroupGetDtoOut
 ): Product => {
-  const screenSize = laptop.screenSize || 0;
-  const resolution = laptop.resolution || 'N/A';
-  const panelType = laptop.panelType || '';
-  const processor = laptop.processor || 'N/A';
-  const videocard = laptop.videocard || 'N/A';
+  const screenSize = laptop.screenSize;
+  const resolution = laptop.resolution;
+  const panelType = laptop.panelType;
 
-  // Use first variant as primary one for price/specs
-  const primaryVariant =
-    laptop.variants && laptop.variants.length > 0 ? laptop.variants[0] : undefined;
+  const variants: ProductVariant[] =
+    laptop.variants?.map((variant) =>
+      mapVariantToProductVariant(
+        variant as LaptopGroupListVariant | LaptopGroupDetailVariant,
+        (laptop as LaptopGroupGetDtoOut).itemList
+      )
+    ) ?? [];
 
-  const ram = primaryVariant?.ram ?? 0;
-  const ssd = primaryVariant?.ssd ?? 0;
-  const battery = (primaryVariant as any)?.battery ?? 0;
+  const prices = variants
+    .map((v) => v.price || 0)
+    .filter((p) => p > 0);
+  const lowestPrice = prices.length > 0 ? Math.min(...prices) : 0;
 
-  // Build display string safely
-  const displayParts = [];
+  const displayParts: string[] = [];
   if (screenSize) displayParts.push(`${screenSize}"`);
-  if (resolution && resolution !== 'N/A') displayParts.push(resolution);
+  if (resolution) displayParts.push(resolution.toUpperCase());
   if (panelType) displayParts.push(panelType.toUpperCase());
-  const display = displayParts.length > 0 ? displayParts.join(' ') : 'N/A';
+  const display =
+    displayParts.length > 0 ? displayParts.join(' ') : 'N/A';
 
-  // Determine images array: use provided images, or fallback to photoUri, or empty array
-  let finalImages: string[] = [];
-  if (images && images.length > 0) {
-    finalImages = images;
-  } else if ((laptop as any).imageUrl) {
-    const imageUrlStr = String((laptop as any).imageUrl).trim();
+  const images: string[] = [];
+  if (laptop.imageUrl) {
+    const imageUrlStr = String(laptop.imageUrl).trim();
     if (
       imageUrlStr !== '' &&
       imageUrlStr !== 'null' &&
       imageUrlStr !== 'undefined'
     ) {
-      finalImages = [imageUrlStr];
-    } else {
-      console.warn(
-        'Invalid imageUrl for laptop group:',
-        (laptop as any).groupName || (laptop as any).title,
-        'imageUrl:',
-        (laptop as any).imageUrl
-      );
+      images.push(imageUrlStr);
     }
-  } else {
-    console.warn(
-      'Missing imageUrl for laptop group:',
-      (laptop as any).groupName || (laptop as any).title,
-      laptop._id
-    );
   }
+
+  const name =
+    (laptop as LaptopGroupListItem).title ||
+    laptop.groupName ||
+    'Unnamed Laptop Group';
+
+  const description =
+    laptop.groupDescription ||
+    (laptop).note ||
+    '';
 
   return {
     id: laptop._id,
-    name:
-      (laptop as LaptopGroupListItem).title ||
-      laptop.groupName ||
-      'Unnamed Laptop Group',
-    brand: 'Kuzco',
-    price: primaryVariant?.price || 0,
-    images: finalImages,
-    description: `${
-      (laptop as any).groupDescription || (laptop as any).note || 'Laptop group'
-    } - ${processor} with ${videocard}`.trim(),
-    specs: {
-      processor: processor,
-      ram: `${ram}GB`,
-      storage: `${ssd}GB SSD`,
-      display: display,
-      graphics: videocard,
-      battery: battery ? String(battery) : 'N/A',
-      weight: 'N/A',
-      os: 'N/A',
-      screenSize: screenSize > 0 ? `${screenSize}"` : 'N/A',
-      resolution: resolution && resolution !== 'N/A' ? resolution : 'N/A',
-      panelType: panelType ? panelType.toUpperCase() : 'N/A',
-    },
-    category: laptop.discrete ? 'Gaming' : 'Professional',
-    tags: [
-      laptop.groupName,
-      laptop.discrete ? 'Discrete Graphics' : 'Integrated Graphics',
-      (primaryVariant as any)?.touch ? 'Touchscreen' : '',
-      (primaryVariant as any)?.keyLight ? 'Backlit Keyboard' : '',
-      panelType ? panelType.toUpperCase() : '',
-    ].filter(Boolean),
-    inStock: true, // All laptops from API are in SELLING state, so they're in stock
+    name,
+    description,
+    price: lowestPrice,
+    images,
+    processor: laptop.processor,
+    videocard: laptop.videocard,
+    display,
+    variants,
   };
 };
-
-/**
- * Maps laptop images from API to array of image URLs
- */
-export const mapLaptopImages = (images: LaptopImage[]): string[] => {
-  return images.map(img => img.signedUrl);
-};
-

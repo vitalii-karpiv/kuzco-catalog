@@ -4,7 +4,7 @@ import type {
   LaptopGroupListPublicDtoOut,
   LaptopGroupGetDtoOut,
   ApiError,
-} from '../types/catalog';
+} from '../types/laptop-group';
 
 /**
  * List laptop groups for public catalog

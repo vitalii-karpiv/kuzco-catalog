@@ -8,6 +8,28 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
   const navigate = useNavigate();
 
+  const ramOptions = Array.from(
+    new Set(
+      (product.variants || [])
+        .map((v) => v.ram)
+        .filter((v): v is number => typeof v === 'number')
+    )
+  )
+    .sort((a, b) => a - b)
+    .map((v) => `${v} GB`)
+    .join(', ');
+
+  const storageOptions = Array.from(
+    new Set(
+      (product.variants || [])
+        .map((v) => v.ssd)
+        .filter((v): v is number => typeof v === 'number')
+    )
+  )
+    .sort((a, b) => a - b)
+    .map((v) => `${v} GB`)
+    .join(', ');
+
   const handleClick = () => {
     navigate(`/laptop/${product.id}`);
   };
@@ -39,30 +61,39 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </div>
         )}
         <div className="absolute top-2 right-2">
-          {product.inStock ? (
             <span className="bg-green-500/90 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
               В наявності
             </span>
-          ) : (
-            <span className="bg-red-500/90 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
-              Немає в наявності
-            </span>
-          )}
         </div>
       </div>
       
       <div className="space-y-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-blue-800 transition-colors">
             {product.name}
           </h3>
-          <p className="text-sm text-gray-600">{product.brand}</p>
         </div>
         
         <div className="space-y-1 text-sm text-gray-600">
-          <p><span className="font-medium">Процесор:</span> {product.specs.processor}</p>
-          <p><span className="font-medium">Пам'ять:</span> {product.specs.ram}</p>
-          <p><span className="font-medium">Накопичувач:</span> {product.specs.storage}</p>
+          <p>
+            <span className="font-medium">Процесор:</span> {product.processor}
+          </p>
+          <p>
+            <span className="font-medium">Відеокарта:</span> {product.videocard}
+          </p>
+            <p>
+                <span className="font-medium">Екран:</span> {product.display}
+            </p>
+          {ramOptions && (
+            <p>
+              <span className="font-medium">Пам'ять:</span> {ramOptions}
+            </p>
+          )}
+          {storageOptions && (
+            <p>
+              <span className="font-medium">Накопичувач:</span> {storageOptions}
+            </p>
+          )}
         </div>
         
         <div className="flex items-center justify-between pt-2">
