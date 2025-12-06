@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 import { FilterState } from '../types/product';
@@ -8,6 +9,7 @@ import type { Product } from '../types/product';
 import type { LaptopGroupListPublicDtoIn } from '../types/laptop-group';
 
 const ProductList = () => {
+  const location = useLocation();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     priceRange: [0, 100000],
@@ -23,6 +25,14 @@ const ProductList = () => {
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as { orderCreated?: boolean } | null;
+    if (state?.orderCreated) {
+      setOrderSuccess(true);
+    }
+  }, [location.state]);
 
 
   // Convert FilterState to API filters
@@ -166,6 +176,45 @@ const ProductList = () => {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-8">
+          {/* Order success alert */}
+          {orderSuccess && (
+            <div className="mb-6">
+              <div className="glass-card border border-green-200 bg-green-50/80 text-green-800 px-4 py-3 rounded-xl flex items-start justify-between space-x-4">
+                <div className="flex items-start space-x-3">
+                  <svg
+                    className="w-6 h-6 text-green-500 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="font-semibold">Ваше замовлення прийнято</p>
+                    <p className="text-sm text-green-700">
+                      Наш менеджер зв&apos;яжеться з вами найближчим часом.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOrderSuccess(false)}
+                  className="text-green-600 hover:text-green-800 transition-colors"
+                  aria-label="Закрити сповіщення"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Results Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between">

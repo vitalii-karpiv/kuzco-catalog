@@ -1,19 +1,24 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import ProductGallery from '../components/ProductGallery';
-import { getLaptop } from '../api';
+import { getLaptop, listImages, createSalePublic } from '../api';
 import { mapLaptopToProduct } from '../utils/mappers';
 import type { Product, ProductVariant } from '../types/product';
 import VariantSelector from '../components/detail/VariantSelector';
 import TechnicalSpecs from '../components/detail/TechnicalSpecs';
+import OrderModal from '../components/OrderModal';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -34,10 +39,12 @@ const ProductDetail = () => {
         const laptopGroup = await getLaptop(id);
         
         if (isCancelled) return;
-        
+
+        const mappedProduct = mapLaptopToProduct(laptopGroup);
+
         if (!isCancelled) {
-          const mappedProduct = mapLaptopToProduct(laptopGroup);
           setProduct(mappedProduct);
+          setGalleryImages(mappedProduct.images);
 
           // Set default selected variant (cheapest or first)
           const variants = mappedProduct.variants || [];
@@ -52,6 +59,44 @@ const ProductDetail = () => {
             setSelectedVariant(null);
           }
         }
+
+        // Lazily load the rest of images for the current product by groupId
+        const loadAdditionalImages = async () => {
+          try {
+            const images = await listImages({ groupId: laptopGroup._id });
+
+            if (isCancelled || !images || images.length === 0) {
+              return;
+            }
+
+            const cleanedUrls = images
+              .map((img) => String(img.s3Url).trim())
+              .filter(
+                (url) =>
+                  url !== '' &&
+                  url !== 'null' &&
+                  url !== 'undefined'
+              );
+
+            if (cleanedUrls.length === 0) {
+              return;
+            }
+
+            setGalleryImages((prev) => {
+              const existing = new Set(prev);
+              cleanedUrls.forEach((url) => {
+                if (!existing.has(url)) {
+                  existing.add(url);
+                }
+              });
+              return Array.from(existing);
+            });
+          } catch (imageError) {
+            console.error('Error loading additional images for laptop group:', imageError);
+          }
+        };
+
+        void loadAdditionalImages();
       } catch (err: unknown) {
         if (!isCancelled) {
           const errorMessage = err instanceof Error ? err.message : 'Не вдалося завантажити ноутбук';
@@ -108,6 +153,41 @@ const ProductDetail = () => {
     );
   }
 
+  const handleOrderClick = () => {
+    setOrderError(null);
+    setIsOrderModalOpen(true);
+  };
+
+  const handleSubmitOrder = async (data: { phone: string; pib: string }) => {
+    if (!selectedVariant) {
+      setOrderError('Будь ласка, оберіть конфігурацію перед замовленням.');
+      return;
+    }
+
+    try {
+      setIsSubmittingOrder(true);
+      setOrderError(null);
+
+      await createSalePublic({
+        laptopId: selectedVariant.itemList[0],
+        phone: "+38" + data.phone,
+        pib: data.pib,
+      });
+
+      setIsOrderModalOpen(false);
+      navigate('/', { state: { orderCreated: true } });
+    } catch (saleError: unknown) {
+      console.error('Failed to create sale:', saleError);
+      const message =
+        typeof saleError === 'object' && saleError !== null && 'message' in saleError
+          ? String((saleError as { message?: unknown }).message)
+          : 'Не вдалося створити замовлення. Спробуйте ще раз пізніше.';
+      setOrderError(message);
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -135,7 +215,7 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Gallery */}
           <div>
-            <ProductGallery images={product.images} productName={product.name} />
+            <ProductGallery images={galleryImages} productName={product.name} />
           </div>
 
           {/* Product Information */}
@@ -168,7 +248,10 @@ const ProductDetail = () => {
 
             {/* Action Buttons */}
             <div className="flex space-x-4">
-              <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl">
+              <button
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
+                onClick={handleOrderClick}
+              >
                 Замовити -{' '}
                 {(selectedVariant?.price ?? product.price).toLocaleString()} грн
               </button>
@@ -176,6 +259,19 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => {
+          if (!isSubmittingOrder) {
+            setIsOrderModalOpen(false);
+            setOrderError(null);
+          }
+        }}
+        onSubmit={handleSubmitOrder}
+        isSubmitting={isSubmittingOrder}
+        errorMessage={orderError}
+      />
     </div>
   );
 };

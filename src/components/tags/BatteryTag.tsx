@@ -10,10 +10,6 @@ const BatteryTag = ({ battery }: BatteryTagProps) => {
     return <Tag color="default">Н/Д</Tag>;
   }
 
-  // [BatteryCondition.EXCELLENT]: [0, 10],
-    //   [BatteryCondition.GOOD]: [11, 25],
-    //   [BatteryCondition.FAIR]: [26, 40],
-    //   [BatteryCondition.POOR]: [41, 100],
   switch (battery) {
     case 'excellent':
       return <Tag color="green">Відмінна 100% - 90%</Tag>;
