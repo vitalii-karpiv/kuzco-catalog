@@ -23,14 +23,29 @@ export const SCREEN_SIZE_OPTIONS = [
   '17.3"',
 ] as const;
 
+export enum RESOLUTION {
+  HD = "hd",
+  FHD = "fhd",
+  QHD = "qhd", // 2k
+  UHD = "uhd", // 4k
+}
+
+// Get user-friendly label for resolution
+export const getResolutionLabel = (resolution: RESOLUTION): string => {
+  const labels: Record<RESOLUTION, string> = {
+    [RESOLUTION.HD]: 'HD (1366x768)',
+    [RESOLUTION.FHD]: 'FHD (1920x1080)',
+    [RESOLUTION.QHD]: 'QHD / 2K (2560x1440)',
+    [RESOLUTION.UHD]: 'UHD / 4K (3840x2160)',
+  };
+  return labels[resolution];
+};
+
 export const RESOLUTION_OPTIONS = [
-  '1366x768',
-  '1920x1080',
-  '1920x1200',
-  '2560x1440',
-  '2560x1600',
-  '2880x1800',
-  '3840x2160',
+  RESOLUTION.HD,
+  RESOLUTION.FHD,
+  RESOLUTION.QHD,
+  RESOLUTION.UHD,
 ] as const;
 
 export const PANEL_TYPE_OPTIONS = ['TN', 'IPS', 'OLED'] as const;
@@ -38,6 +53,6 @@ export const PANEL_TYPE_OPTIONS = ['TN', 'IPS', 'OLED'] as const;
 export type RAMOption = typeof RAM_OPTIONS[number];
 export type StorageOption = typeof STORAGE_OPTIONS[number];
 export type ScreenSizeOption = typeof SCREEN_SIZE_OPTIONS[number];
-export type ResolutionOption = typeof RESOLUTION_OPTIONS[number];
+export type ResolutionOption = RESOLUTION;
 export type PanelTypeOption = typeof PANEL_TYPE_OPTIONS[number];
 

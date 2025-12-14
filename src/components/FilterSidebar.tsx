@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FilterState } from '../types/product';
 import {
   RAM_OPTIONS,
@@ -6,6 +6,8 @@ import {
   SCREEN_SIZE_OPTIONS,
   RESOLUTION_OPTIONS,
   PANEL_TYPE_OPTIONS,
+  RESOLUTION,
+  getResolutionLabel,
 } from '../constants/filterOptions';
 
 interface FilterSidebarProps {
@@ -22,6 +24,11 @@ const FilterSidebar = ({
   onFiltersChange
 }: FilterSidebarProps) => {
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
+
+  // Sync local filters when props change
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
 
   const handleApplyFilters = () => {
     onFiltersChange(localFilters);
@@ -41,7 +48,7 @@ const FilterSidebar = ({
     onFiltersChange(resetFilters);
   };
 
-  const handleSpecChange = (type: 'ram' | 'storage' | 'screenSize' | 'resolution' | 'panelType', value: string, checked: boolean) => {
+  const handleSpecChange = (type: 'ram' | 'storage' | 'screenSize' | 'resolution' | 'panelType', value: string | RESOLUTION, checked: boolean) => {
     setLocalFilters(prev => ({
       ...prev,
       [type]: checked 
@@ -195,7 +202,7 @@ const FilterSidebar = ({
                       onChange={(e) => handleSpecChange('resolution', resolution, e.target.checked)}
                       className="rounded border-white/30 text-blue-600 focus:ring-blue-500/50"
                     />
-                    <span className="ml-2 text-sm text-gray-700">{resolution}</span>
+                    <span className="ml-2 text-sm text-gray-700">{getResolutionLabel(resolution)}</span>
                   </label>
                 ))}
               </div>

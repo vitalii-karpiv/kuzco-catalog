@@ -85,12 +85,13 @@ const ProductList = () => {
     }
 
     if (filters.panelType.length > 0) {
-    // API accepts list of panel types, already in uppercase form (e.g. "IPS")
-      filters.panelType = filters.panelType.map(panelType => panelType.toLowerCase());
-      apiFilter.panelType = filters.panelType;
+      // API accepts list of panel types in lowercase (e.g. "ips")
+      // Convert to lowercase for API without mutating the original filter state
+      apiFilter.panelType = filters.panelType.map(panelType => panelType.toLowerCase());
     }
 
     if (filters.resolution.length > 0) {
+      // Send resolution enum values directly to API (e.g., "hd", "fhd", "qhd", "uhd")
       apiFilter.resolutionList = filters.resolution;
     }
 

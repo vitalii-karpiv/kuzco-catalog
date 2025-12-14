@@ -1,5 +1,6 @@
 import type { BatteryCondition } from '../constants/batteryCondition';
 import type { LaptopCondition } from '../constants/laptopCondition';
+import type { RESOLUTION } from '../constants/filterOptions';
 
 export interface Product {
     id: string;
@@ -29,7 +30,7 @@ export interface FilterState {
   ram: string[];
   storage: string[];
   screenSize: string[];
-  resolution: string[];
+  resolution: RESOLUTION[];
   panelType: string[];
   searchQuery: string;
 }
