@@ -23,12 +23,14 @@ export const SCREEN_SIZE_OPTIONS = [
   '17.3"',
 ] as const;
 
-export enum RESOLUTION {
-  HD = "hd",
-  FHD = "fhd",
-  QHD = "qhd", // 2k
-  UHD = "uhd", // 4k
-}
+export const RESOLUTION = {
+  HD: "hd",
+  FHD: "fhd",
+  QHD: "qhd", // 2k
+  UHD: "uhd", // 4k
+} as const;
+
+export type RESOLUTION = typeof RESOLUTION[keyof typeof RESOLUTION];
 
 // Get user-friendly label for resolution
 export const getResolutionLabel = (resolution: RESOLUTION): string => {
