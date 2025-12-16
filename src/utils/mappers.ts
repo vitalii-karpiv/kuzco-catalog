@@ -120,7 +120,6 @@ export const mapLaptopToProduct = (
 
   const description =
     laptop.groupDescription ||
-    (laptop).note ||
     '';
 
   return {
