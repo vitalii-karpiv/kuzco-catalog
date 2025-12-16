@@ -220,12 +220,7 @@ const ProductDetail = () => {
             {/* Basic Info */}
             <div className="glass-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800">{product.name}</h1>
-                </div>
-                <div className="text-right">
-                  <div className="text-xl font-bold text-gray-800">{product.price.toLocaleString()} грн</div>
-                </div>
+                <h1 className="text-2xl font-bold text-gray-800">💻 {product.name}</h1>
               </div>
 
               {product.description && <p className="text-gray-700 leading-relaxed whitespace-pre-line">{product.description}</p>}
