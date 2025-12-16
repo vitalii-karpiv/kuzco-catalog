@@ -219,16 +219,16 @@ const ProductDetail = () => {
           <div className="space-y-8">
             {/* Basic Info */}
             <div className="glass-card p-6">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800 mb-2">{product.name}</h1>
+                  <h1 className="text-2xl font-bold text-gray-800">{product.name}</h1>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-800">{product.price.toLocaleString()} грн</div>
+                  <div className="text-xl font-bold text-gray-800">{product.price.toLocaleString()} грн</div>
                 </div>
               </div>
-              
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{product.description}</p>
+
+              {product.description && <p className="text-gray-700 leading-relaxed whitespace-pre-line">{product.description}</p>}
             </div>
 
             {/* Technical Specifications */}
