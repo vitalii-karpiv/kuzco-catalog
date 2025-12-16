@@ -32,6 +32,7 @@ const FilterSidebar = ({
 
   const handleApplyFilters = () => {
     onFiltersChange(localFilters);
+    onClose();
   };
 
   const handleResetFilters = () => {

@@ -201,10 +201,7 @@ const ProductDetail = () => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>Повернутися до каталогу</span>
             </button>
-            
-            <h1 className="text-xl font-semibold text-white">{product.name}</h1>
             
             <div className="w-24" /> {/* Spacer for centering */}
           </div>
@@ -224,14 +221,14 @@ const ProductDetail = () => {
             <div className="glass-card p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
+                  <h1 className="text-2xl font-bold text-gray-800 mb-2">{product.name}</h1>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-800">{product.price.toLocaleString()} грн</div>
+                  <div className="text-2xl font-bold text-gray-800">{product.price.toLocaleString()} грн</div>
                 </div>
               </div>
               
-              <p className="text-gray-700 leading-relaxed">{product.description}</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{product.description}</p>
             </div>
 
             {/* Technical Specifications */}
