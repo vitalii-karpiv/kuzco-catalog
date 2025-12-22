@@ -203,6 +203,13 @@ const ProductDetail = () => {
               </svg>
             </button>
             
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center"
+            >
+              <img src="/logo.png" alt="Kuzco Logo" className="h-10 w-auto" />
+            </button>
+            
             <div className="w-24" /> {/* Spacer for centering */}
           </div>
         </div>
