@@ -143,8 +143,8 @@ const ProductList = () => {
       <header className="bg-gradient-to-r from-[#903C5F] via-[#4E5CA3] to-[#1B8CCB] border-b border-white/30 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">Каталог ноутбуків</h1>
+            <div className="flex items-center space-x-3">
+              <img src="/logo.png" alt="Kuzco Logo" className="h-10 w-auto" />
             </div>
             
             {/* Mobile Filter Toggle */}
