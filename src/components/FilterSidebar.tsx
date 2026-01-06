@@ -83,11 +83,11 @@ const FilterSidebar = ({
         fixed lg:sticky top-0 lg:top-16 left-0 h-full lg:h-[calc(100vh-4rem)] w-80 bg-white/30 backdrop-blur-md border-r border-white/40 z-50
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        overflow-y-auto
+        flex flex-col
       `}>
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+        {/* Header */}
+        <div className="flex-shrink-0 p-6 pb-4 border-b border-white/20">
+          <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-800">Фільтри</h2>
             <button
               onClick={onClose}
@@ -98,8 +98,12 @@ const FilterSidebar = ({
               </svg>
             </button>
           </div>
+        </div>
 
-          <div className="space-y-6">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 pt-4">
+            <div className="space-y-6">
             {/* Search */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Пошук</label>
@@ -226,11 +230,13 @@ const FilterSidebar = ({
                 ))}
               </div>
             </div>
-
+            </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3 mt-8">
+        {/* Sticky Action Buttons */}
+        <div className="flex-shrink-0 p-6 pt-4 border-t border-white/20">
+          <div className="flex space-x-3">
             <button
               onClick={handleApplyFilters}
               className="flex-1 glass-button py-2 px-4 text-sm font-medium text-gray-700 hover:text-gray-900"
